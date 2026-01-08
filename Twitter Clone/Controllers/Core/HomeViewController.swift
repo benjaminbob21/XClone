@@ -6,8 +6,13 @@
 //
 
 import UIKit
+import FirebaseAuth
+import Combine
 
 class HomeViewController: UIViewController {
+    
+    private var viewModel = HomeViewViewModel()
+    private var subscriptions: Set<AnyCancellable> = []
 
   private func configureNavigationBar() {
     let size: CGFloat = 36
@@ -25,7 +30,8 @@ class HomeViewController: UIViewController {
   }
 
   @objc private func didTapProfile() {
-    let vc = ProfileViewController()
+    let viewModel = ProfileViewViewModel()
+    let vc = ProfileViewController(viewModel: viewModel)
     navigationController?.pushViewController(vc, animated: true)
   }
 
@@ -42,12 +48,51 @@ class HomeViewController: UIViewController {
     timelineTableView.delegate = self
     timelineTableView.dataSource = self
     configureNavigationBar()
+      navigationItem.rightBarButtonItem = UIBarButtonItem(image: UIImage(systemName: "rectangle.portrait.and.arrow.right"), style: .plain, target: self, action: #selector(didTapSignOut))
+      bindViews()
   }
+    
+    @objc private func didTapSignOut() {
+        try? Auth.auth().signOut()
+        handleAuthentication()
+    }
 
   override func viewDidLayoutSubviews() {
     super.viewDidLayoutSubviews()
     timelineTableView.frame = view.frame
   }
+    
+    private func handleAuthentication() {
+        if Auth.auth().currentUser == nil {
+            let vc = UINavigationController(rootViewController: OnboardingViewController())
+            vc.modalPresentationStyle = .fullScreen
+            present(vc, animated: false)
+        }
+    }
+    
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        navigationController?.navigationBar.isHidden = false
+        handleAuthentication()
+        viewModel.retreiveUser()
+    }
+    
+    
+    func completeUserOnboarding(){
+        let vc = ProfileDataFormViewController()
+        present(vc, animated: true)
+    }
+    
+    func bindViews(){
+        viewModel.$user.sink{[weak self] user in
+            guard let user = user else {return}
+            print(user.isUserOnboarded)
+            if !user.isUserOnboarded {
+                self?.completeUserOnboarding()
+            }
+        }
+        .store(in: &subscriptions)
+    }
 }
 
 extension HomeViewController: UITableViewDelegate, UITableViewDataSource {

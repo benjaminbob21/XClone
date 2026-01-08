@@ -6,10 +6,34 @@
 //
 
 import UIKit
+import Combine
 
 class ProfileViewController: UIViewController {
+    
+    private var isStatusBarHidden: Bool = true
+    private var viewModel: ProfileViewViewModel
 
-    private let profileHeaderView = ProfileTableViewHeader(frame: .zero)
+    init(viewModel: ProfileViewViewModel) {
+        self.viewModel = viewModel
+        super.init(nibName: nil, bundle: nil)
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError()
+    }
+
+    private let statusBar: UIView = {
+        let view = UIView()
+        view.backgroundColor = .systemBackground
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.layer.opacity = 0
+        return view
+    }()
+    
+    private var subscriptions: Set<AnyCancellable> = []
+    private lazy var headerView = ProfileTableViewHeader(
+        frame: CGRect(x: 0, y: 0, width: profileTableView.frame.width, height: 430)
+    )
 
     private let profileTableView: UITableView = {
         let tableView = UITableView()
@@ -17,69 +41,100 @@ class ProfileViewController: UIViewController {
         tableView.translatesAutoresizingMaskIntoConstraints = false
         return tableView
     }()
-
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .systemBackground
         navigationItem.title = "Profile"
         view.addSubview(profileTableView)
+        view.addSubview(statusBar)
+        
         profileTableView.delegate = self
         profileTableView.dataSource = self
-        profileHeaderView.frame = CGRect(x: 0, y: 0, width: profileTableView.bounds.width, height: 1)
-        profileTableView.tableHeaderView = profileHeaderView
-        updateTableHeaderSizeIfNeeded()
+        profileTableView.tableHeaderView = headerView
+        profileTableView.contentInsetAdjustmentBehavior = .never
+        navigationController?.navigationBar.isHidden = true
         configureConstraints()
+        bindViews()
+        viewModel.retreiveUser()
     }
+        
+    private func bindViews() {
 
-    override func viewDidLayoutSubviews() {
-        super.viewDidLayoutSubviews()
-        updateTableHeaderSizeIfNeeded()
+//        viewModel.$tweets.sink { [weak self] _ in
+//            DispatchQueue.main.async {
+//                self?.profileTableView.reloadData()
+//            }
+//        }
+//        .store(in: &subscriptions)
+
+        viewModel.$user.sink { [weak self] user in
+            guard let user = user else { return }
+            self?.headerView.displayNameLabel.text = user.displayName
+            self?.headerView.usernameLabel.text = "@\(user.username)"
+            self?.headerView.followersCountLabel.text = "\(user.followersCount)"
+            self?.headerView.followingCountLabel.text = "\(user.followingCount)"
+            self?.headerView.userBioLabel.text = user.bio
+            
+        }
+        .store(in: &subscriptions)
     }
-
+    
     private func configureConstraints() {
+        
         let profileTableViewConstraints = [
-            profileTableView.topAnchor.constraint(equalTo: view.topAnchor),
             profileTableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            profileTableView.topAnchor.constraint(equalTo: view.topAnchor),
             profileTableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             profileTableView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
         ]
-
+        
+        let statusBarConstraints = [
+            statusBar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            statusBar.topAnchor.constraint(equalTo: view.topAnchor),
+            statusBar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            statusBar.heightAnchor.constraint(equalToConstant: view.bounds.height > 800 ? 40 : 20)
+        ]
+        
         NSLayoutConstraint.activate(profileTableViewConstraints)
+        NSLayoutConstraint.activate(statusBarConstraints)
     }
-
-    private func updateTableHeaderSizeIfNeeded() {
-        guard let header = profileTableView.tableHeaderView else { return }
-        let availableWidth = profileTableView.bounds.width
-        guard availableWidth > 0 else { return }
-
-        if header.frame.width != availableWidth {
-            header.frame.size.width = availableWidth
-        }
-
-        header.setNeedsLayout()
-        header.layoutIfNeeded()
-
-        let targetSize = CGSize(width: availableWidth, height: UIView.layoutFittingCompressedSize.height)
-        let requiredHeight = header.systemLayoutSizeFitting(targetSize).height
-
-        if header.frame.height != requiredHeight {
-            header.frame.size.height = requiredHeight
-            profileTableView.tableHeaderView = header
-        }
-    }
-
+    
 }
+
 
 extension ProfileViewController: UITableViewDelegate, UITableViewDataSource {
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         return 4
     }
-
+    
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         guard let cell = tableView.dequeueReusableCell(withIdentifier: TweetTableViewCell.identifier, for: indexPath) as? TweetTableViewCell else {
             return UITableViewCell()
         }
+//        let tweet = viewModel.tweets[indexPath.row]
+//        cell.configureTweet(with: tweet.author.displayName,
+//                            username: tweet.author.username,
+//                            tweetTextContent: tweet.tweetContent,
+//                            avatarPath: tweet.author.avatarPath)
 
         return cell
+    }
+    
+    func scrollViewDidScroll(_ scrollView: UIScrollView) {
+        let yPosition = scrollView.contentOffset.y
+        
+        if yPosition > 150 && isStatusBarHidden {
+            isStatusBarHidden = false
+            UIView.animate(withDuration: 0.3, delay: 0, options: .curveLinear) { [weak self] in
+                self?.statusBar.layer.opacity = 1
+            } completion: { _ in }
+            
+        } else if yPosition < 0 && !isStatusBarHidden {
+            isStatusBarHidden = true
+            UIView.animate(withDuration: 0.3, delay: 0, options: .curveLinear) { [weak self] in
+                self?.statusBar.layer.opacity = 0
+            } completion: { _ in }
+        }
     }
 }
