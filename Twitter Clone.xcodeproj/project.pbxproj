@@ -14,6 +14,7 @@
 		C49F25752EFE2EB80044C47F /* FirebaseFirestoreCombine-Community in Frameworks */ = {isa = PBXBuildFile; productRef = C49F25742EFE2EB80044C47F /* FirebaseFirestoreCombine-Community */; };
 		C49F25772EFE2EB80044C47F /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = C49F25762EFE2EB80044C47F /* FirebaseStorage */; };
 		C49F25792EFE2EB80044C47F /* FirebaseStorageCombine-Community in Frameworks */ = {isa = PBXBuildFile; productRef = C49F25782EFE2EB80044C47F /* FirebaseStorageCombine-Community */; };
+		C4E1A66C2F1AB68700AFB6B9 /* SDWebImage in Frameworks */ = {isa = PBXBuildFile; productRef = C4E1A66B2F1AB68700AFB6B9 /* SDWebImage */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -53,21 +54,28 @@
 				Controllers/Core/SearchViewController.swift,
 				Controllers/General/ProfileDataFormViewController.swift,
 				Controllers/General/ProfileViewController.swift,
+				Controllers/General/SearchResultsViewController.swift,
+				Controllers/General/TweetComposeViewController.swift,
 				Controllers/Onboarding/LoginViewController.swift,
 				Controllers/Onboarding/OnboardingViewController.swift,
 				Controllers/Onboarding/RegisterViewController.swift,
 				"GoogleService-Info.plist",
+				Model/Tweet.swift,
 				Model/XUser.swift,
 				Networking/AuthManager.swift,
 				Networking/DatabaseManager.swift,
 				Networking/StorageManager.swift,
 				SceneDelegate.swift,
+				"Utils/Extensions/Extension+UIColor.swift",
 				ViewModels/AuthenticationViewViewModel.swift,
 				ViewModels/HomeViewViewModel.swift,
 				ViewModels/ProfileDataFormViewViewModel.swift,
 				ViewModels/ProfileViewViewModel.swift,
+				ViewModels/SearchViewViewModel.swift,
+				ViewModels/TweetComposeViewViewModel.swift,
 				Views/ProfileTableViewHeader.swift,
 				Views/TweetTableViewCell.swift,
+				Views/UserTableViewCell.swift,
 			);
 			target = C4351EAD2E8F73E70019B162 /* Twitter Clone */;
 		};
@@ -115,6 +123,7 @@
 			files = (
 				C49F25712EFE2EB80044C47F /* FirebaseDatabase in Frameworks */,
 				C49F25792EFE2EB80044C47F /* FirebaseStorageCombine-Community in Frameworks */,
+				C4E1A66C2F1AB68700AFB6B9 /* SDWebImage in Frameworks */,
 				C49F25732EFE2EB80044C47F /* FirebaseFirestore in Frameworks */,
 				C49F256D2EFE2EB80044C47F /* FirebaseAuth in Frameworks */,
 				C49F25752EFE2EB80044C47F /* FirebaseFirestoreCombine-Community in Frameworks */,
@@ -184,6 +193,7 @@
 				C49F25742EFE2EB80044C47F /* FirebaseFirestoreCombine-Community */,
 				C49F25762EFE2EB80044C47F /* FirebaseStorage */,
 				C49F25782EFE2EB80044C47F /* FirebaseStorageCombine-Community */,
+				C4E1A66B2F1AB68700AFB6B9 /* SDWebImage */,
 			);
 			productName = "Twitter Clone";
 			productReference = C4351EAE2E8F73E70019B162 /* Twitter Clone.app */;
@@ -270,6 +280,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				C49F256B2EFE2EB80044C47F /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+				C4E1A66A2F1AB68700AFB6B9 /* XCRemoteSwiftPackageReference "SDWebImage" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = C4351EAF2E8F73E70019B162 /* Products */;
@@ -644,6 +655,14 @@
 				minimumVersion = 12.7.0;
 			};
 		};
+		C4E1A66A2F1AB68700AFB6B9 /* XCRemoteSwiftPackageReference "SDWebImage" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/SDWebImage/SDWebImage.git";
+			requirement = {
+				kind = upToNextMinorVersion;
+				minimumVersion = 5.21.5;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -681,6 +700,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = C49F256B2EFE2EB80044C47F /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
 			productName = "FirebaseStorageCombine-Community";
+		};
+		C4E1A66B2F1AB68700AFB6B9 /* SDWebImage */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C4E1A66A2F1AB68700AFB6B9 /* XCRemoteSwiftPackageReference "SDWebImage" */;
+			productName = SDWebImage;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

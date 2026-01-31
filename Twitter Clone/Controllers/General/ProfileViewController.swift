@@ -7,6 +7,8 @@
 
 import UIKit
 import Combine
+import SDWebImage
+import FirebaseAuth
 
 class ProfileViewController: UIViewController {
     
@@ -32,7 +34,7 @@ class ProfileViewController: UIViewController {
     
     private var subscriptions: Set<AnyCancellable> = []
     private lazy var headerView = ProfileTableViewHeader(
-        frame: CGRect(x: 0, y: 0, width: profileTableView.frame.width, height: 430)
+        frame: CGRect(x: 0, y: 0, width: profileTableView.frame.width, height: 420)
     )
 
     private let profileTableView: UITableView = {
@@ -56,26 +58,50 @@ class ProfileViewController: UIViewController {
         navigationController?.navigationBar.isHidden = true
         configureConstraints()
         bindViews()
-        viewModel.retreiveUser()
+        viewModel.fetchUserTweets()
     }
         
     private func bindViews() {
 
-//        viewModel.$tweets.sink { [weak self] _ in
-//            DispatchQueue.main.async {
-//                self?.profileTableView.reloadData()
-//            }
-//        }
-//        .store(in: &subscriptions)
+        viewModel.$tweets.sink { [weak self] _ in
+            DispatchQueue.main.async {
+                self?.profileTableView.reloadData()
+            }
+        }
+        .store(in: &subscriptions)
 
         viewModel.$user.sink { [weak self] user in
-            guard let user = user else { return }
             self?.headerView.displayNameLabel.text = user.displayName
             self?.headerView.usernameLabel.text = "@\(user.username)"
             self?.headerView.followersCountLabel.text = "\(user.followersCount)"
             self?.headerView.followingCountLabel.text = "\(user.followingCount)"
             self?.headerView.userBioLabel.text = user.bio
-            
+            self?.headerView.profileAvatarImageView.sd_setImage(with: URL(string: user.avatarPath))
+            self?.headerView.joinedDateLabel.text = "Joined \(self?.viewModel.getFormattedDate(with: user.createdOn) ?? "")"
+        }
+        .store(in: &subscriptions)
+        
+        viewModel.$currentFollowingState.sink{[weak self] state in
+            switch state {
+            case .personal:
+                self?.headerView.configureAsPersonal()
+            case .userIsFollowed:
+                self?.headerView.configureButtonAsUnFollow()
+            case .userIsUnfollowed:
+                self?.headerView.configureButtonAsFollow()
+            }
+        }
+        .store(in: &subscriptions)
+        
+        headerView.followButtonActionPublisher.sink{ [weak self] state in
+            switch state{
+            case .userIsFollowed:
+                self?.viewModel.unFollow()
+            case .userIsUnfollowed:
+                self?.viewModel.follow()
+            case .personal:
+                return
+            }
         }
         .store(in: &subscriptions)
     }
@@ -105,18 +131,18 @@ class ProfileViewController: UIViewController {
 
 extension ProfileViewController: UITableViewDelegate, UITableViewDataSource {
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return 4
+        return viewModel.tweets.count
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         guard let cell = tableView.dequeueReusableCell(withIdentifier: TweetTableViewCell.identifier, for: indexPath) as? TweetTableViewCell else {
             return UITableViewCell()
         }
-//        let tweet = viewModel.tweets[indexPath.row]
-//        cell.configureTweet(with: tweet.author.displayName,
-//                            username: tweet.author.username,
-//                            tweetTextContent: tweet.tweetContent,
-//                            avatarPath: tweet.author.avatarPath)
+        let tweet = viewModel.tweets[indexPath.row]
+        cell.configureTweet(with: tweet.author.displayName,
+                            username: tweet.author.username,
+                            tweetTextContent: tweet.tweetContent,
+                            avatarPath: tweet.author.avatarPath)
 
         return cell
     }

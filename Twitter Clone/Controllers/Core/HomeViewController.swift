@@ -13,6 +13,21 @@ class HomeViewController: UIViewController {
     
     private var viewModel = HomeViewViewModel()
     private var subscriptions: Set<AnyCancellable> = []
+    
+    private lazy var composeTweetButton: UIButton = {
+        let button = UIButton(type: .system, primaryAction: UIAction { [weak self] _ in
+            self?.navigateToTweetComposer()
+        })
+        
+        button.translatesAutoresizingMaskIntoConstraints = false
+        button.backgroundColor = .twitterBlueColor
+        button.tintColor = .white
+        let plusSign = UIImage(systemName: "plus", withConfiguration: UIImage.SymbolConfiguration(pointSize: 18, weight: .bold))
+        button.setImage(plusSign, for: .normal)
+        button.layer.cornerRadius = 30
+        button.clipsToBounds = true
+        return button
+    }()
 
   private func configureNavigationBar() {
     let size: CGFloat = 36
@@ -30,8 +45,9 @@ class HomeViewController: UIViewController {
   }
 
   @objc private func didTapProfile() {
-    let viewModel = ProfileViewViewModel()
-    let vc = ProfileViewController(viewModel: viewModel)
+      guard let user = viewModel.user else {return}
+      let profileViewModel = ProfileViewViewModel(user: user)
+    let vc = ProfileViewController(viewModel: profileViewModel)
     navigationController?.pushViewController(vc, animated: true)
   }
 
@@ -45,6 +61,7 @@ class HomeViewController: UIViewController {
   override func viewDidLoad() {
     super.viewDidLoad()
     view.addSubview(timelineTableView)
+    view.addSubview(composeTweetButton)
     timelineTableView.delegate = self
     timelineTableView.dataSource = self
     configureNavigationBar()
@@ -60,6 +77,7 @@ class HomeViewController: UIViewController {
   override func viewDidLayoutSubviews() {
     super.viewDidLayoutSubviews()
     timelineTableView.frame = view.frame
+    configureConstraints()
   }
     
     private func handleAuthentication() {
@@ -68,6 +86,12 @@ class HomeViewController: UIViewController {
             vc.modalPresentationStyle = .fullScreen
             present(vc, animated: false)
         }
+    }
+    
+    private func navigateToTweetComposer(){
+        let vc = UINavigationController(rootViewController: TweetComposeViewController())
+        vc.modalPresentationStyle = .fullScreen
+        present(vc, animated: true)
     }
     
     override func viewWillAppear(_ animated: Bool) {
@@ -92,28 +116,49 @@ class HomeViewController: UIViewController {
             }
         }
         .store(in: &subscriptions)
+        
+        viewModel.$tweets.sink { [weak self] _ in
+            DispatchQueue.main.async {
+                self?.timelineTableView.reloadData()
+            }
+        }
+        .store(in: &subscriptions)
+    }
+    
+    private func configureConstraints(){
+        let composeTweetButtonConstraints = [
+            composeTweetButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -25),
+            composeTweetButton.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -120),
+            composeTweetButton.widthAnchor.constraint(equalToConstant: 60),
+            composeTweetButton.heightAnchor.constraint(equalToConstant: 60)
+        ]
+        
+        NSLayoutConstraint.activate(composeTweetButtonConstraints)
     }
 }
 
 extension HomeViewController: UITableViewDelegate, UITableViewDataSource {
   func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-    return 10
+      return viewModel.tweets.count
   }
 
   func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-    guard
-      let cell = tableView.dequeueReusableCell(
+    guard let cell = tableView.dequeueReusableCell(
         withIdentifier: TweetTableViewCell.identifier, for: indexPath) as? TweetTableViewCell
     else {
       return UITableViewCell()
     }
+      
+    let tweetModel = viewModel.tweets[indexPath.row]
+    cell.configureTweet(with: tweetModel.author.displayName,
+                          username: tweetModel.author.username,
+                          tweetTextContent: tweetModel.tweetContent,
+                          avatarPath: tweetModel.author.avatarPath)
     cell.delegate = self
     return cell
   }
 
-  //    func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
-  //        return 120
-  //    }
+
 }
 extension HomeViewController: TweetTableViewCellDelegate {
   func tweetTableViewCellDidTapReply() {
